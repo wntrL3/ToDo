@@ -3,7 +3,6 @@ import type { Route } from "./+types/signup";
 import { users } from "~/lib/appwrite.server";
 import { ID } from "node-appwrite";
 
-//mögliche Fehlermeldungen im Formular
 type ActionErrors = {
   email?: string;
   password?: string;
@@ -15,7 +14,7 @@ export async function action({ request }: Route.ActionArgs) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
-  const errors: ActionErrors = {}; 
+  const errors: ActionErrors = {};
 
   if (!email || !email.includes("@")) {
     errors.email = "Bitte eine gültige E-Mail-Adresse eingeben.";
@@ -29,7 +28,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     await users.create(ID.unique(), email, undefined, password);
-    return redirect("/todos");
+    return redirect("/login");
   } catch (error: any) {
     const errors: ActionErrors = { general: "Fehler: " + error.message };
     return data({ errors }, { status: 500 });
@@ -38,105 +37,79 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Signup({ actionData }: Route.ComponentProps) {
   return (
-    <div
-      style={{
-        maxWidth: 420,
-        margin: "60px auto",
-        padding: "30px",
-        borderRadius: 8,
-        boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
-        background: "#fff",
-        fontFamily: "sans-serif"
-      }}
-    >
-      <h1 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Registrieren
-      </h1>
-
-      <form
-        method="post"
-        noValidate
-        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-      >
-        {/* E-Mail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label htmlFor="email">E-Mail</label>
-
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            style={{
-              padding: "10px",
-              borderRadius: 6,
-              border: "1px solid #ccc",
-              fontSize: "14px"
-            }}
-          />
-
-          {actionData?.errors?.email && (
-            <p style={{ color: "red", fontSize: "13px", margin: 0 }}>
-              {actionData.errors.email}
-            </p>
-          )}
-        </div>
-
-        {/* Passwort */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <label htmlFor="password">Passwort</label>
-
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            minLength={8}
-            style={{
-              padding: "10px",
-              borderRadius: 6,
-              border: "1px solid #ccc",
-              fontSize: "14px"
-            }}
-          />
-
-          {actionData?.errors?.password && (
-            <p style={{ color: "red", fontSize: "13px", margin: 0 }}>
-              {actionData.errors.password}
-            </p>
-          )}
-        </div>
-
-        {/* Allgemeiner Fehler */}
-        {actionData?.errors?.general && (
-          <p style={{ color: "red", fontSize: "14px", margin: 0 }}>
-            {actionData.errors.general}
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            Konto erstellen
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Registriere dich, um loszulegen.
           </p>
-        )}
+        </div>
 
-        {/* Button */}
-        <button
-          type="submit"
-          style={{
-            padding: "10px",
-            borderRadius: 6,
-            border: "none",
-            background: "#4f46e5",
-            color: "white",
-            fontWeight: 600,
-            cursor: "pointer"
-          }}
+        <form
+          method="post"
+          noValidate
+          className="space-y-4"
         >
-          Registrieren
-        </button>
-      </form>
+          {/* E-Mail */}
+          <div>
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+              E-Mail
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+            {actionData?.errors?.email && (
+              <p className="mt-1 text-xs text-red-500">{actionData.errors.email}</p>
+            )}
+          </div>
 
-      <p style={{ textAlign: "center", marginTop: "20px", fontSize: "14px", color: "#6b7280" }}>
-        Bereits ein Konto?{" "}
-        <Link to="/login" style={{ color: "#4f46e5", textDecoration: "none", fontWeight: 600 }}>
-          Jetzt anmelden
-        </Link>
-      </p>
+          {/* Passwort */}
+          <div>
+            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+              Passwort
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            />
+            {actionData?.errors?.password && (
+              <p className="mt-1 text-xs text-red-500">{actionData.errors.password}</p>
+            )}
+          </div>
+
+          {/* General error */}
+          {actionData?.errors?.general && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+              {actionData.errors.general}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 active:bg-indigo-800"
+          >
+            Registrieren
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Bereits ein Konto?{" "}
+          <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-500">
+            Jetzt anmelden
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
