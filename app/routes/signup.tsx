@@ -1,7 +1,8 @@
 import { data, redirect, Link } from "react-router";
 import type { Route } from "./+types/signup";
 import { users } from "~/lib/appwrite.server";
-import { ID } from "node-appwrite";
+import { ID, Client, Account } from "node-appwrite";
+import { createSessionHeaders } from "~/lib/session.server";
 
 type ActionErrors = {
   email?: string;
@@ -27,8 +28,16 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
-    await users.create(ID.unique(), email, undefined, password);
-    return redirect("/login");
+    const user = await users.create(ID.unique(), email, undefined, password);
+
+    // Direkt einloggen nach Registrierung
+    const client = new Client()
+      .setEndpoint(process.env.APPWRITE_ENDPOINT!)
+      .setProject(process.env.APPWRITE_PROJECT_ID!);
+    const account = new Account(client);
+    await account.createEmailPasswordSession(email, password);
+
+    return redirect("/todos", { headers: createSessionHeaders(user.$id) });
   } catch (error: any) {
     const errors: ActionErrors = { general: "Fehler: " + error.message };
     return data({ errors }, { status: 500 });
