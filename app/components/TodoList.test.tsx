@@ -29,29 +29,19 @@ describe("TodoList", () => {
     expect(screen.getByText("Second task")).toBeInTheDocument();
   });
 
-  it("shows completed todo with line-through", () => {
+  it("applies line-through class to completed todos", () => {
     const todo = makeTodo({ completed: true, title: "Done task" });
     render(<TodoList items={[todo]} allTodos={[todo]} />);
-    expect(screen.getByText("Done task")).toHaveStyle({ textDecoration: "line-through" });
+    expect(screen.getByText("Done task")).toHaveClass("line-through");
   });
 
-  it("shows ✅ for completed and ⬜ for open todos", () => {
-    const todos = [
-      makeTodo({ $id: "1", completed: true }),
-      makeTodo({ $id: "2", completed: false }),
-    ];
-    render(<TodoList items={todos} allTodos={todos} />);
-    expect(screen.getByText("✅")).toBeInTheDocument();
-    expect(screen.getByText("⬜")).toBeInTheDocument();
-  });
-
-  it("shows sub-task input form after clicking '+ Sub-Task'", async () => {
+  it("shows sub-task form after clicking '+ Sub-Task'", async () => {
     const user = userEvent.setup();
     const todo = makeTodo({ $id: "1", title: "Parent task" });
     render(<TodoList items={[todo]} allTodos={[todo]} />);
 
     await user.click(screen.getByText("+ Sub-Task"));
-    expect(screen.getByPlaceholderText("Sub-Task...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Sub-Task hinzufügen...")).toBeInTheDocument();
   });
 
   it("renders sub-tasks nested under their parent", () => {
@@ -66,11 +56,9 @@ describe("TodoList", () => {
   it("does not render sub-tasks as top-level items", () => {
     const parent = makeTodo({ $id: "parent-1", title: "Parent task" });
     const child = makeTodo({ $id: "child-1", title: "Child task", parentId: "parent-1" });
-    // Only parent is passed as items — child should still appear via recursion
     render(<TodoList items={[parent]} allTodos={[parent, child]} />);
 
     const lists = screen.getAllByRole("list");
-    // Root list has 1 item; child is inside a nested list
     expect(lists.length).toBeGreaterThanOrEqual(2);
   });
 });

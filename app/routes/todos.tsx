@@ -24,7 +24,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return data({
     todos: response.documents as unknown as TodoItem[],
-    total: response.total,
     limit,
   });
 }
@@ -57,16 +56,12 @@ export async function action({ request }: Route.ActionArgs) {
     const newCompleted = !completed;
 
     async function toggleAllChildren(parentId: string, completed: boolean) {
-      try {
-        const children = await databases.listDocuments(DB_ID, COLLECTION_ID, [
-          Query.equal("parentId", parentId),
-        ]);
-        for (const child of children.documents) {
-          await databases.updateDocument(DB_ID, COLLECTION_ID, child.$id, { completed });
-          await toggleAllChildren(child.$id, completed);
-        }
-      } catch {
-        // parentId-Index in Appwrite fehlt noch
+      const children = await databases.listDocuments(DB_ID, COLLECTION_ID, [
+        Query.equal("parentId", parentId),
+      ]);
+      for (const child of children.documents) {
+        await databases.updateDocument(DB_ID, COLLECTION_ID, child.$id, { completed });
+        await toggleAllChildren(child.$id, completed);
       }
     }
 
