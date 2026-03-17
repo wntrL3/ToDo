@@ -17,7 +17,7 @@ export default async ({ req, res, log, error }) => {
   try {
     await resend.emails.send({
       from: "onboarding@resend.dev",
-      to: user.email,
+      to: "winterlinus4@gmail.com",
       subject: "Willkommen bei der Todo App!",
       html: "<p>Hi,</p><p>dein Account wurde erfolgreich erstellt. Viel Spaß mit deiner Todo App!</p>",
     });
