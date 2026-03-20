@@ -1,6 +1,10 @@
+// Imports Funktionen aus React Router
 import { data, redirect, Link } from "react-router";
 import type { Route } from "./+types/login";
 import { Client, Account } from "node-appwrite";
+//Session Helfer: 
+// createSessionHeaders: setzt Cookies/Header für Login
+// getUserId: liest aus der Request, ob User eingeloggt ist
 import { createSessionHeaders, getUserId } from "~/lib/session.server";
 
 type ActionErrors = {
@@ -9,12 +13,16 @@ type ActionErrors = {
   general?: string;
 };
 
+// Loader läuft bevor die Seite gerendert wird
 export function loader({ request }: Route.LoaderArgs) {
+  // Prüft ob es bereits eine Session gibt
   const userId = getUserId(request);
+  // Wenn ja dann ist kein Login nötig und die Todos werden direkt aufgerufen 
   if (userId) return redirect("/todos");
   return null;
 }
 
+// Identisch zum signup
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;

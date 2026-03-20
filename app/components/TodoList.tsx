@@ -1,21 +1,31 @@
+// Import die logik bzw Typ eines To Do item 
 import type { TodoItem } from "~/lib/types";
+// React Hook für lokalen Zustand
 import { useState } from "react";
 
+
 type Props = {
+  // Todos, die auf einer Ebene angezeight werden 
   items: TodoItem[];
+  // Alle Todos aus der DB
   allTodos: TodoItem[];
 };
 
+
+// Haupt Komponente als Liste
 export function TodoList({ items, allTodos }: Props) {
   return (
     <ul className="space-y-2">
       {items.map((item) => (
+        // Für jedes ToDo wird eine einzelne Zeile gerendert
         <TodoItemRow key={item.$id} item={item} allTodos={allTodos} />
       ))}
     </ul>
   );
 }
 
+
+// einzelne Todo Zeile 
 function TodoItemRow({ item, allTodos }: { item: TodoItem; allTodos: TodoItem[] }) {
   const [showSubForm, setShowSubForm] = useState(false);
   const subTasks = allTodos.filter((t) => t.parentId === item.$id);

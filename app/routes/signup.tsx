@@ -1,22 +1,40 @@
+// IMPORTS
+// Importiert Helfer aus React Router:
+// - data: um strukturierte Responses zurückzugeben 
+// - redirect um nach erfolgreicher Aktion weiterzuleiten 
+// - Link für die Navigation in der UI 
 import { data, redirect, Link } from "react-router";
+// Typen für die Route
 import type { Route } from "./+types/signup";
+// Appwrite User Service aus appwrite-functions/~
 import { users } from "~/lib/appwrite.server";
+// Appwrite SDK Klassen für Client und Auth. ID ermöglicht das erstellen einer unique-ID
 import { ID, Client, Account } from "node-appwrite";
+// Funktion zum Setzen von Session-Coolies/Headern
 import { createSessionHeaders } from "~/lib/session.server";
 
+
+
+// Definiert die möglichen Fehler die beim Absenden des Formulars auftreten können 
 type ActionErrors = {
   email?: string;
   password?: string;
   general?: string;
 };
 
+
+
 export async function action({ request }: Route.ActionArgs) {
+  // Formulardaten aus der Request extrahieren 
   const formData = await request.formData();
+
+  // Werte auslesen (email und das passwort)
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
 
+  // Objekt für mögliche Validierungsfehler
   const errors: ActionErrors = {};
-
+  // Validierung:
   if (!email || !email.includes("@")) {
     errors.email = "Bitte eine gültige E-Mail-Adresse eingeben.";
   }
@@ -28,19 +46,26 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   try {
+    // Neuen User in Appwrite erstellen 
     const user = await users.create(ID.unique(), email, undefined, password);
 
     // Direkt einloggen nach Registrierung
+    // Dafür wird neuer Appwrite CLient erstellt
     const client = new Client()
       .setEndpoint(process.env.APPWRITE_ENDPOINT!)
       .setProject(process.env.APPWRITE_PROJECT_ID!);
+    // Account Instanz für Authentifizierung
     const account = new Account(client);
+    // Erstellt eine neue Session (Login)mit email und Passwort
     await account.createEmailPasswordSession(email, password);
 
+    // nach erfolgreichem Signup + Login: 
+    // Weiterleitung zur todos Seite 
     return redirect("/todos", { headers: createSessionHeaders(user.$id) });
   } catch (error: any) {
+    // Falls etwas schiefgeht wie zb dass User schon existiert oder Netzwerkfehler existiert 
     const errors: ActionErrors = { general: "Fehler: " + error.message };
-    return data({ errors }, { status: 500 });
+    return data({ errors }, { status: 500 }); // Fehler wird zurückgegeben 
   }
 }
 
