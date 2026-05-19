@@ -18,37 +18,50 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Wenn nicht dann weiterleitung zum Login
   if (!userId) return redirect("/login");
 
-  // Query- Parameter aus URL lesen 
+  // Query-Parameter aus URL lesen
   const { searchParams } = new URL(request.url);
   const limitParam = searchParams.get("limit");
-  // Limit bestimmen: 
-  // - all -> alle bzw 5000 laden
-  // - sonst Zahl aus URL -> Minimum 5
-  const limit = limitParam === "all" ? 5000 : Math.max(5, parseInt(limitParam || "5", 10));
+  const offsetParam = searchParams.get("offset");
 
-  // Root-Todos laden (nur Einträge ohne parentId) mit Limit
+  // Limit bestimmen:
+  // - all -> alle bzw 5000 laden
+  // - sonst Zahl aus URL -> Standard 10
+  const showAll = limitParam === "all";
+  const limit = showAll ? 5000 : Math.max(5, parseInt(limitParam || "10", 10));
+  // Offset bestimmen: wie viele Einträge übersprungen werden
+  const offset = showAll ? 0 : Math.max(0, parseInt(offsetParam || "0", 10));
+
+  // Root-Todos laden (nur Einträge ohne parentId) mit Limit und Offset
   const rootResponse = await databases.listDocuments(DB_ID, COLLECTION_ID, [
     Query.equal("userId", userId),
     Query.isNull("parentId"),
     Query.limit(limit),
+    Query.offset(offset),
     Query.orderAsc("$createdAt"),
   ]);
 
-  // Alle Subtasks laden (Einträge mit parentId)
-  const subResponse = await databases.listDocuments(DB_ID, COLLECTION_ID, [
-    Query.equal("userId", userId),
-    Query.isNotNull("parentId"),
-    Query.limit(5000),
-    Query.orderAsc("$createdAt"),
-  ]);
+  // IDs der sichtbaren Root-Todos sammeln, um nur passende Subtasks zu laden
+  const rootIds = rootResponse.documents.map((doc) => doc.$id);
+
+  // Subtasks laden, die zu den sichtbaren Root-Todos gehören
+  const subResponse = rootIds.length > 0
+    ? await databases.listDocuments(DB_ID, COLLECTION_ID, [
+        Query.equal("userId", userId),
+        Query.equal("parentId", rootIds),
+        Query.limit(5000),
+        Query.orderAsc("$createdAt"),
+      ])
+    : { documents: [] };
 
   // Root-Todos und Subtasks zusammenführen
   const todos = [...rootResponse.documents, ...subResponse.documents];
 
-  // Daten werden an die UI zurückgegebn
+  // Daten werden an die UI zurückgegeben
   return data({
     todos: todos as unknown as TodoItem[],
     limit,
+    offset,
+    total: rootResponse.total,
   });
 }
 
@@ -135,8 +148,14 @@ export async function action({ request }: Route.ActionArgs) {
 // ─── Seite ────────────────────────────────────────────────────────────────────
 
 export default function Todos({ loaderData }: Route.ComponentProps) {
-  const { todos, limit } = loaderData;
+  const { todos, limit, offset, total } = loaderData;
   const rootTodos = todos.filter((t) => !t.parentId);
+
+  // Berechne aktuelle Seite und Gesamtseiten
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
+  const hasPrev = offset > 0;
+  const hasNext = offset + limit < total;
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10">
@@ -184,19 +203,39 @@ export default function Todos({ loaderData }: Route.ComponentProps) {
       <TodoList items={rootTodos} allTodos={todos} />
 
       {/* Pagination */}
-      <div className="mt-6 flex gap-2">
-        <Link
-          to={`/todos?limit=${limit + 10}`}
-          className="flex-1 rounded-lg border border-gray-200 bg-white py-2.5 text-center text-sm font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:text-gray-800"
-        >
-          Nächste 10 laden
-        </Link>
-        <Link
-          to="/todos?limit=all"
-          className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-center text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
-        >
-          Alle laden
-        </Link>
+      <div className="mt-6 flex flex-col items-center gap-3">
+        <div className="flex w-full gap-2">
+          {/* Zurück-Button: nur anzeigen wenn nicht auf erster Seite */}
+          {hasPrev && (
+            <Link
+              to={`/todos?limit=${limit}&offset=${Math.max(0, offset - limit)}`}
+              className="flex-1 rounded-lg border border-gray-200 bg-white py-2.5 text-center text-sm font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:text-gray-800"
+            >
+              Zurück
+            </Link>
+          )}
+          {/* Weiter-Button: nur anzeigen wenn es noch weitere Einträge gibt */}
+          {hasNext && (
+            <Link
+              to={`/todos?limit=${limit}&offset=${offset + limit}`}
+              className="flex-1 rounded-lg border border-gray-200 bg-white py-2.5 text-center text-sm font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:text-gray-800"
+            >
+              Weiter
+            </Link>
+          )}
+          <Link
+            to="/todos?limit=all"
+            className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-center text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"
+          >
+            Alle laden
+          </Link>
+        </div>
+        {/* Seitenanzeige */}
+        {total > 0 && (
+          <p className="text-xs text-gray-400">
+            Seite {currentPage} von {totalPages} ({total} Einträge)
+          </p>
+        )}
       </div>
     </div>
   );

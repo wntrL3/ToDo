@@ -25,7 +25,6 @@ export function TodoList({ items, allTodos }: Props) {
 }
 
 
-// einzelne Todo Zeile 
 function TodoItemRow({ item, allTodos }: { item: TodoItem; allTodos: TodoItem[] }) {
   const [showSubForm, setShowSubForm] = useState(false);
   const subTasks = allTodos.filter((t) => t.parentId === item.$id);
